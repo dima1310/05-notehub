@@ -3,10 +3,14 @@ import css from "./SearchBox.module.css";
 
 interface SearchBoxProps {
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange: (value: string) => void;
 }
 
 const SearchBox: React.FC<SearchBoxProps> = ({ value, onChange }) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+  };
+
   return (
     <input
       className={css.input}
@@ -14,7 +18,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ value, onChange }) => {
       name="search"
       placeholder="Search notes"
       value={value}
-      onChange={onChange}
+      onChange={handleInputChange}
     />
   );
 };

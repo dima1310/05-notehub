@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { useDebouncedCallback } from "use-debounce";
+import { useDebounce } from "use-debounce";
 import { fetchNotes } from "../../services/noteService";
 import NoteList from "../NoteList/NoteList";
 import Pagination from "../Pagination/Pagination";
@@ -15,19 +15,17 @@ const App: React.FC = () => {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const debouncedSearch = useDebouncedCallback((value: string) => {
-    setSearch(value);
-    setPage(1);
-  }, 500);
+  const [debouncedSearch] = useDebounce(search, 500);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["notes", page, search],
-    queryFn: () => fetchNotes(page, 12, search),
+    queryKey: ["notes", page, debouncedSearch],
+    queryFn: () => fetchNotes(page, 12, debouncedSearch),
     placeholderData: keepPreviousData,
   });
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    debouncedSearch(e.target.value);
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
   };
 
   const handlePageChange = ({ selected }: { selected: number }) => {
