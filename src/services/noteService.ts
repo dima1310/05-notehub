@@ -24,7 +24,7 @@ const api = axios.create({
 export async function fetchNotes(
   page: number = 1,
   perPage: number = 12,
-  search?: string // Зроблено опціональним, щоб не передавати порожній рядок
+  search?: string
 ): Promise<FetchNotesResponse> {
   const params: Record<string, string | number> = {
     page,

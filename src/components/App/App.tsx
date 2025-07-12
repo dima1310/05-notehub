@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useDebounce } from "use-debounce";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useDebouncedCallback } from "use-debounce";
 import { fetchNotes } from "../../services/noteService";
 import NoteList from "../NoteList/NoteList";
 import Pagination from "../Pagination/Pagination";
@@ -13,23 +13,21 @@ import css from "./App.module.css";
 const App: React.FC = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [debouncedSearch] = useDebounce(search, 500);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const debouncedSearch = useDebouncedCallback((value: string) => {
+    setSearch(value);
+    setPage(1);
+  }, 500);
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ["notes", page, debouncedSearch],
-    queryFn: () => fetchNotes(page, 12, debouncedSearch),
+    queryKey: ["notes", page, search],
+    queryFn: () => fetchNotes(page, 12, search),
+    placeholderData: keepPreviousData,
   });
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    setPage(1);
-  };
-
-  const handleSearchSubmit = async (formData: FormData) => {
-    const searchValue = formData.get("search") as string;
-    setSearch(searchValue);
-    setPage(1);
+    debouncedSearch(e.target.value);
   };
 
   const handlePageChange = ({ selected }: { selected: number }) => {
@@ -42,30 +40,36 @@ const App: React.FC = () => {
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
-        <SearchBox
-          value={search}
-          onChange={handleSearchChange}
-          action={handleSearchSubmit}
-        />
-        {data && data.totalPages > 1 && (
-          <Pagination
-            pageCount={data.totalPages}
-            onPageChange={handlePageChange}
-            currentPage={page - 1}
-          />
-        )}
+        <SearchBox value={search} onChange={handleSearchChange} />
         <button className={css.button} onClick={openModal}>
           Create note +
         </button>
       </header>
 
       {isLoading && <Loader />}
-      {error && <div>Error: {(error as Error).message}</div>}
-      {data && data.notes.length > 0 ? (
-        <NoteList notes={data.notes} />
-      ) : (
-        <div>No notes found</div>
+
+      {error && (
+        <div className={css.error}>
+          Error:{" "}
+          {error instanceof Error ? error.message : "Something went wrong"}
+        </div>
       )}
+
+      {data && data.notes && data.notes.length > 0 ? (
+        <>
+          <NoteList notes={data.notes} />
+          {data.totalPages > 1 && (
+            <Pagination
+              pageCount={data.totalPages}
+              onPageChange={handlePageChange}
+              currentPage={page - 1}
+            />
+          )}
+        </>
+      ) : (
+        !isLoading && <div className={css.noNotes}>No notes found</div>
+      )}
+
       {isModalOpen && (
         <Modal onClose={closeModal}>
           <NoteForm onClose={closeModal} />
